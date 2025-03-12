@@ -20,3 +20,7 @@ Configure your NTP clocks with:
 
 - Query time at 00:01, so on DST changes it jumps back to 23:01 or forward to 01:01.
   > CH899's interface only allows you to choose presets like 22:00, but with inspect element I changed it to 00:01 and it works fine.
+
+## Running
+
+Clone this repo in your server and start the container with docker compose.

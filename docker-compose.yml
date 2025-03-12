@@ -1,0 +1,14 @@
+services:
+  ntpcl:
+    container_name: ntpcl
+    image: python:3.13-alpine
+    restart: unless-stopped
+    ports:
+      - 0.0.0.0:123:123/udp
+    volumes:
+      - ./ntpcl.py:/ntpcl.py
+    command:
+      - /ntpcl.py
+    init: true
+    environment:
+      PYTHONUNBUFFERED: x

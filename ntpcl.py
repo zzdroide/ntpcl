@@ -4,8 +4,13 @@
 #Public domain.
 
 # To test:
-# ntpdate -dq 127.0.0.1
-# faketime '2025-01-01 00:00:00' python3 -c "from ntpserver import currtime; print(currtime())"
+# Computer B (test):
+#   sudo systemctl stop systemd-timesyncd.service
+#   timedatectl set-timezone Europe/Moscow
+# Computer A (dev):
+#   sudo faketime @1680404340 ./ntpcl.py
+# Computer B:
+#   run "sudo ntpdate -v 10.0.0.4" repeatedly, with Computer A's IP
 
 import socket
 import time
@@ -17,13 +22,17 @@ from grp import getgrnam
 NTPFORMAT = ">3B b 3I 4Q"
 NTPDELTA = 2208988800.0
 precision = -29
+UTCp3 = 10800  # UTC+03:00
 
 def s2n(t = 0.0):       # System to NTP
         t += NTPDELTA
         return (int(t) << 32) + int(abs(t - int(t)) * (1<<32))
 
 def currtime():
-        return time.time()
+        return time.time() + time.localtime().tm_gmtoff - UTCp3
+        # To test:
+        # faketime @1735689600 python3 -c "from ntpcl import currtime; print(currtime())"
+        # faketime @1748736000 python3 -c "from ntpcl import currtime; print(currtime())"
 
 def main():
         nobody_uid = getpwnam('nobody').pw_uid

@@ -1,6 +1,6 @@
 # ntpcl
 
-An NTP server for Chile using server's timezone.
+An NTP server for Chile using server's tzdata.
 
 ## Why
 

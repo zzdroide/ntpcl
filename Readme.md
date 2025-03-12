@@ -13,7 +13,7 @@ However, in Chile you [never know](https://github.com/eggert/tz/blob/1913dd77b52
 Configure your NTP clocks with:
 
 - your server IP as its NTP server
-  > If it can't be configured, you'll have to hijack it. My [CH899](https://www.hr-clockparts.com/clock-movement/wifi-clock-movement.html) clock queries `time.pool.aliyun.com` first, so in my router I set the DNS to resolve the domain to my server IP.
+  > If it can't be configured, you'll have to hijack it. My [CH899](https://www.hr-clockparts.com/clock-movement/wifi-clock-movement.html) clock queries `time.pool.aliyun.com` and `cn.ntp.org.cn`, so in my router I set the DNS to resolve those domains to my server IP.
 
 - Timezone **GMT+3**, no DST. With 6 or 7 hours of difference with GMT−3 and GMT−4, in case of misconfiguration the time will be wrong enough for you to notice.
   > Misconfiguration especially if the DNS hijacking is removed.

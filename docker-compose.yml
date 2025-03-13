@@ -7,7 +7,5 @@ services:
       - 0.0.0.0:123:123/udp
     volumes:
       - ./ntpcl.py:/ntpcl.py
-    command: sh -c "apk upgrade tzdata && exec /ntpcl.py"
+    env_file: .env
     init: true
-    environment:
-      PYTHONUNBUFFERED: x

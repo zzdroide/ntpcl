@@ -24,15 +24,24 @@ NTPDELTA = 2208988800.0
 precision = -29
 UTCp3 = 10800  # UTC+03:00
 
+# CH899 query limit: 21:50
+# DST advance: 00:00 - 21:50 = 2:10
+dst_advance_secs = (2*60 + 10) * 60
+
+CH899_ips = set(os.environ.get('CH899', '').split(','))
+
 def s2n(t = 0.0):       # System to NTP
         t += NTPDELTA
         return (int(t) << 32) + int(abs(t - int(t)) * (1<<32))
 
-def currtime():
-        return time.time() + time.localtime().tm_gmtoff - UTCp3
+def currtime(ch899):
+        seconds = time.time()
+        gmtoff = time.localtime((seconds + dst_advance_secs) if ch899 else seconds).tm_gmtoff
+        return seconds + gmtoff - UTCp3
         # To test:
-        # faketime @1735689600 python3 -c "from ntpcl import currtime; print(currtime())"
-        # faketime @1748736000 python3 -c "from ntpcl import currtime; print(currtime())"
+        # faketime @1672531200 python3 -c "from ntpcl import currtime; print(currtime(False)); print(currtime(True))"
+        # faketime @1685577600 python3 -c "from ntpcl import currtime; print(currtime(False)); print(currtime(True))"
+        # faketime @1680397200 python3 -c "from ntpcl import currtime; print(currtime(False)); print(currtime(True))"
 
 def main():
         nobody_uid = getpwnam('nobody').pw_uid
@@ -57,7 +66,8 @@ def main():
                 try:
                         # receive the query
                         req_raw, addr = s.recvfrom(struct.calcsize(NTPFORMAT))
-                        serverrecv = s2n(currtime())
+                        ch899 = addr[0] in CH899_ips
+                        serverrecv = s2n(currtime(ch899))
                         if len(req_raw) != struct.calcsize(NTPFORMAT):
                                 raise Exception("Invalid NTP packet: packet too short: %d bytes" % (len(req_raw)))
                         try:
@@ -87,7 +97,7 @@ def main():
                         res[7] = serverrecv            # Reference Timestamp
                         res[8] = clienttx              # Originate Timestamp
                         res[9] = serverrecv            # Receive Timestamp
-                        res[10] = s2n(currtime())      # Transmit Timestamp
+                        res[10] = s2n(currtime(ch899)) # Transmit Timestamp
 
                         # send the response
                         data = struct.pack(NTPFORMAT, *res)
@@ -96,7 +106,7 @@ def main():
                 except Exception as e:
                         print(f"{addr[0]}: failed: {e}")
                 else:
-                        print(f'{addr[0]}: ok')
+                        print(f'{addr[0]}: ok{" (ch899)" if ch899 else ""}')
 
 
 if __name__ == "__main__":

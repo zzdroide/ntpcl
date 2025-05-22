@@ -28,12 +28,14 @@ Configure your NTP clocks with:
 
   > Unfortunately CH899 can query only as late as 22:00 or as early as 9:00. Using 9:00 would show wrong time in the morning, using 22:00 would show wrong time almost all day.
   >
-  > Hack: add CH899 IPs to .env and set them to query at 22:00. This program will make an exception for them and advance DST changes, so time will be wrong for only 2 hours before midnight.
+  > Hack: set `CH899` to `true` in clock config (see below) and set the CH899 clock to query at 22:00. This program will make an exception for them and advance DST changes, so time will be wrong for only 2 hours before midnight.
+
+Optionally, create `config.json` from `config.example.json`. `clocks` keys are their IPs, `healthcheck` can be defined as an URL to ping on ntp success. This way you can be alerted if your clocks stop syncing, for example by [healthchecks.io](https://healthchecks.io).
 
 ## Running
 
 - Clone this repo in your server
-- Copy .example.env to .env and edit it
+- (Optional) Create `config.json`
 - Start the container with docker compose.
 
 To apply [tzdata](https://pkgs.alpinelinux.org/package/v3.21/main/x86_64/tzdata) updates: `docker compose restart`

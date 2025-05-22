@@ -6,6 +6,5 @@ services:
     ports:
       - 0.0.0.0:123:123/udp
     volumes:
-      - ./ntpcl.py:/ntpcl.py
-    env_file: .env
+      - ./:/app/:ro
     init: true

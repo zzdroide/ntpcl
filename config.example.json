@@ -1,0 +1,8 @@
+{
+  "clocks": {
+    "10.0.0.120": {
+      "CH899": true,
+      "healthcheck": "https://hc-ping.com/aabbccdd-..."
+    }
+  }
+}

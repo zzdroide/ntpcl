@@ -16,6 +16,8 @@ import socket
 import time
 import os
 import struct
+import json
+import urllib.request
 from pwd import getpwnam
 from grp import getgrnam
 
@@ -28,7 +30,16 @@ UTCp3 = 10800  # UTC+03:00
 # DST advance: 00:00 - 21:50 = 2:10
 dst_advance_secs = (2*60 + 10) * 60
 
-CH899_ips = set(os.environ.get('CH899', '').split(','))
+def load_config():
+        try:
+                with open('config.json') as f:
+                        return json.load(f)
+        except FileNotFoundError:
+                return {}
+
+def ping_healthcheck(url):
+        if url:
+                urllib.request.urlopen(url, timeout=10)
 
 def s2n(t = 0.0):       # System to NTP
         t += NTPDELTA
@@ -44,13 +55,11 @@ def currtime(ch899):
         # faketime @1680397200 python3 -c "from ntpcl import currtime; print(currtime(False)); print(currtime(True))"
 
 def main():
+        config = load_config()
+        clocks = config.get('clocks', {})
+
         nobody_uid = getpwnam('nobody').pw_uid
         nogroup_gid = getgrnam('nogroup').gr_gid
-
-        # chroot
-        root = '/var/lib/ntpserver'
-        os.makedirs(root, mode=0o700, exist_ok=True)
-        os.chroot(root)
 
         # create socket
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -66,8 +75,8 @@ def main():
                 try:
                         # receive the query
                         req_raw, addr = s.recvfrom(struct.calcsize(NTPFORMAT))
-                        ch899 = addr[0] in CH899_ips
-                        serverrecv = s2n(currtime(ch899))
+                        clock = clocks.get(addr[0], {})
+                        serverrecv = s2n(currtime(clock.get('CH899')))
                         if len(req_raw) != struct.calcsize(NTPFORMAT):
                                 raise Exception("Invalid NTP packet: packet too short: %d bytes" % (len(req_raw)))
                         try:
@@ -87,17 +96,17 @@ def main():
 
                         # create the NTP response
                         res = [0] * 11
-                        res[0] = version << 3 | 4      # Leap, Version, Mode
-                        res[1] = 1                     # Stratum
-                        res[2] = 0                     # Poll
-                        res[3] = precision             # Precision
-                        res[4] = 0                     # Synchronizing Distance
-                        res[5] = 0                     # Synchronizing Dispersion
-                        res[6] = 0                     # Reference Clock Identifier
-                        res[7] = serverrecv            # Reference Timestamp
-                        res[8] = clienttx              # Originate Timestamp
-                        res[9] = serverrecv            # Receive Timestamp
-                        res[10] = s2n(currtime(ch899)) # Transmit Timestamp
+                        res[0] = version << 3 | 4                   # Leap, Version, Mode
+                        res[1] = 1                                  # Stratum
+                        res[2] = 0                                  # Poll
+                        res[3] = precision                          # Precision
+                        res[4] = 0                                  # Synchronizing Distance
+                        res[5] = 0                                  # Synchronizing Dispersion
+                        res[6] = 0                                  # Reference Clock Identifier
+                        res[7] = serverrecv                         # Reference Timestamp
+                        res[8] = clienttx                           # Originate Timestamp
+                        res[9] = serverrecv                         # Receive Timestamp
+                        res[10] = s2n(currtime(clock.get('CH899'))) # Transmit Timestamp
 
                         # send the response
                         data = struct.pack(NTPFORMAT, *res)
@@ -105,8 +114,17 @@ def main():
 
                 except Exception as e:
                         print(f"{addr[0]}: failed: {e}")
+
                 else:
-                        print(f'{addr[0]}: ok{" (ch899)" if ch899 else ""}')
+                        ch899_marker = ' (ch899)' if clock.get('CH899') else ''
+
+                        hc_error = ''
+                        try:
+                                ping_healthcheck(clock.get('healthcheck'))
+                        except Exception as e:
+                                hc_error = f' (HC PING FAILED: {e})'
+
+                        print(f'{addr[0]}: ok{ch899_marker}{hc_error}')
 
 
 if __name__ == "__main__":
